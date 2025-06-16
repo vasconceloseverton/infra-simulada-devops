@@ -1,58 +1,43 @@
-name: CI/CD Pipeline
+name: CI/CD Pipeline with Healthcheck
 
 on:
   push:
-    branches:
-      - main
-  pull_request:
-    branches:
-      - main
+    branches: [main]
+  workflow_dispatch:
 
 jobs:
-  build-and-test:
+  build-and-deploy:
     runs-on: ubuntu-latest
 
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
-
-      - name: Set up Python 3.10
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.10'
-
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install -r app/requirements.txt
-          pip install requests
-
-      - name: Build Docker image
-        run: docker build -t infra-simulada-devops-app ./app
-
-      - name: Run Docker container in background
-        run: docker run -d -p 5000:5000 --name devops-app infra-simulada-devops-app
-
-      - name: Wait for app to start
-        run: sleep 10
-
-      - name: Run healthcheck
-        run: python scripts/healthcheck.py http://localhost:5000
-
-      - name: Stop Docker container
-        run: docker stop devops-app
-
-  deploy:
-    needs: build-and-test
-    runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    env:
+      TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
+      TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+      APP_URL: "https://infra-simulada-devops.onrender.com/"
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
+    - name: 📥 Checkout do código
+      uses: actions/checkout@v4
 
-      - name: Deploy to Render
-        uses: render-examples/deploy-to-render@v1
-        with:
-          api_key: ${{ secrets.RENDER_API_KEY }}
-          service_id: ${{ secrets.RENDER_SERVICE_ID }}
+    - name: 🐍 Configurar Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.10'
+
+    - name: 📦 Instalar dependências
+      run: |
+        pip install -r app/requirements.txt
+        pip install requests
+
+    - name: 🚀 Deploy no Render
+      run: |
+        curl -X POST \
+          -H "Accept: application/json" \
+          -H "Authorization: Bearer ${{ secrets.RENDER_API_KEY }}" \
+          https://api.render.com/deploy/srv-${{ secrets.RENDER_SERVICE_ID }}
+
+    - name: ⏳ Aguardar Deploy (60 segundos)
+      run: sleep 60
+
+    - name: 🔍 Healthcheck + Alerta Telegram
+      run: |
+        python scripts/healthcheck_with_alert.py $APP_URL
