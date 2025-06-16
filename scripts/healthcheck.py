@@ -3,7 +3,7 @@ import sys
 
 def healthcheck(url):
     try:
-        response = requests.get(url, timeout=5)
+        response = requests.get(url, timeout=20)
         if response.status_code == 200:
             print(f"✅ Healthcheck OK - {url}")
             sys.exit(0)

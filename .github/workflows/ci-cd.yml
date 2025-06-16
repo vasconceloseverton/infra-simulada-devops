@@ -35,8 +35,8 @@ jobs:
           -H "Authorization: Bearer ${{ secrets.RENDER_API_KEY }}" \
           https://api.render.com/deploy/srv-${{ secrets.RENDER_SERVICE_ID }}
 
-    - name: ⏳ Aguardar Deploy (60 segundos)
-      run: sleep 60
+    - name: ⏳ Aguardar Deploy (120 segundos)
+      run: sleep 120
 
     - name: 🔍 Healthcheck + Alerta Telegram
       run: |
